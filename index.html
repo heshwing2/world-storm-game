@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Storm - Battle Royale</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Main Menu -->
+    <div id="mainMenu" class="menu-screen">
+        <div class="menu-content">
+            <h1 class="game-title">🌪️ WORLD STORM</h1>
+            <p class="game-subtitle">Battle Royale Experience</p>
+            
+            <div class="menu-buttons">
+                <button id="soloBtn" class="menu-btn solo-btn">
+                    <span class="btn-icon">👤</span>
+                    <span class="btn-text">SOLO</span>
+                </button>
+                <button id="duoBtn" class="menu-btn duo-btn">
+                    <span class="btn-icon">👥</span>
+                    <span class="btn-text">DUO</span>
+                </button>
+            </div>
+            
+            <div class="menu-info">
+                <p>30 Players • Multiple Islands • Dynamic Storm</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobbyScreen" class="menu-screen hidden">
+        <div class="menu-content">
+            <h2>Preparing Match...</h2>
+            <div class="lobby-info">
+                <p id="modeText">Mode: SOLO</p>
+                <p id="playerCount">Players: 0/30</p>
+            </div>
+            <div class="loading-spinner"></div>
+            <button id="cancelLobbyBtn" class="menu-btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="gameHUD" class="hidden">
+        <div class="hud-top">
+            <div class="compass">
+                <div class="compass-needle"></div>
+                <div class="compass-label">N</div>
+            </div>
+            <div class="match-info">
+                <p id="playerAliveCount">Players Alive: 30</p>
+                <p id="stormWarning">Safe Zone Shrinking</p>
+            </div>
+        </div>
+
+        <div class="hud-bottom">
+            <div class="health-bar-container">
+                <div id="healthBar" class="health-bar"></div>
+                <span id="healthText">100/100</span>
+            </div>
+            <div class="ammo-display">
+                <span id="ammoText">30/120</span>
+            </div>
+        </div>
+
+        <div class="hud-center">
+            <div class="crosshair"></div>
+        </div>
+
+        <div class="minimap-container">
+            <canvas id="minimapCanvas" width="150" height="150"></canvas>
+            <div id="stormIndicator" class="storm-indicator hidden">
+                <p>Storm Shrinking</p>
+            </div>
+        </div>
+
+        <div class="weapon-info">
+            <p id="weaponName">Assault Rifle</p>
+            <p id="damageInfo">Damage: 35</p>
+        </div>
+
+        <div class="controls-hint">
+            <p>WASD: Move | SPACE: Jump | C: Crouch | SHIFT: Sprint | E: Interact | LMB: Shoot | RMB: Aim</p>
+        </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victoryScreen" class="menu-screen hidden">
+        <div class="menu-content">
+            <h1 id="victoryTitle">VICTORY</h1>
+            <div class="victory-stats">
+                <div class="stat">
+                    <span class="stat-label">Position</span>
+                    <span id="statPosition" class="stat-value">#1</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Kills</span>
+                    <span id="statKills" class="stat-value">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Damage</span>
+                    <span id="statDamage" class="stat-value">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Survival Time</span>
+                    <span id="statSurvivalTime" class="stat-value">00:00</span>
+                </div>
+            </div>
+            <button id="returnToMenuBtn" class="menu-btn">Return to Menu</button>
+        </div>
+    </div>
+
+    <!-- Storm Selection Screen -->
+    <div id="stormSelectionScreen" class="menu-screen hidden">
+        <div class="menu-content">
+            <h2>Choose Your Storm</h2>
+            <p class="storm-subtitle">You control the next storm!</p>
+            <div class="storm-options">
+                <button class="storm-btn tornado-btn" data-storm="tornado">
+                    <span class="storm-emoji">🌪️</span>
+                    <span class="storm-name">Tornado</span>
+                </button>
+                <button class="storm-btn lightning-btn" data-storm="lightning">
+                    <span class="storm-emoji">⚡</span>
+                    <span class="storm-name">Lightning</span>
+                </button>
+                <button class="storm-btn" data-storm="firestorm">
+                    <span class="storm-emoji">🔥</span>
+                    <span class="storm-name">Firestorm</span>
+                </button>
+                <button class="storm-btn" data-storm="icestorm">
+                    <span class="storm-emoji">❄️</span>
+                    <span class="storm-name">Ice Storm</span>
+                </button>
+                <button class="storm-btn" data-storm="floodstorm">
+                    <span class="storm-emoji">🌊</span>
+                    <span class="storm-name">Floodstorm</span>
+                </button>
+            </div>
+            <p id="stormCountdown">Choose in: 10s</p>
+        </div>
+    </div>
+
+    <script src="three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
