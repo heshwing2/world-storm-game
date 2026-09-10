@@ -373,13 +373,111 @@ class InputHandler {
     }
 }
 
+// 2D Canvas Renderer
+class CanvasRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.setupCanvas();
+    }
+
+    setupCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        window.addEventListener('resize', () => this.setupCanvas());
+    }
+
+    render(gameState) {
+        // Clear canvas with gradient background
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        gradient.addColorStop(0, '#1a1f3a');
+        gradient.addColorStop(1, '#0a0e27');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw game world (simplified 2D view from above)
+        this.drawGameWorld(gameState);
+    }
+
+    drawGameWorld(gameState) {
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        const scale = 0.1; // Pixels per game unit
+
+        // Draw terrain
+        this.ctx.fillStyle = 'rgba(76, 175, 80, 0.3)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw grid
+        this.ctx.strokeStyle = 'rgba(0, 212, 255, 0.1)';
+        this.ctx.lineWidth = 1;
+        for (let i = 0; i < this.canvas.width; i += 50) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(i, 0);
+            this.ctx.lineTo(i, this.canvas.height);
+            this.ctx.stroke();
+        }
+        for (let i = 0; i < this.canvas.height; i += 50) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, i);
+            this.ctx.lineTo(this.canvas.width, i);
+            this.ctx.stroke();
+        }
+
+        // Draw storm circle
+        const stormX = centerX + (gameState.storm.centerX - gameState.localPlayer.position.x) * scale;
+        const stormY = centerY + (gameState.storm.centerZ - gameState.localPlayer.position.z) * scale;
+        const stormRadius = gameState.storm.radius * scale;
+
+        this.ctx.strokeStyle = 'rgba(255, 107, 107, 0.6)';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(stormX, stormY, stormRadius, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Draw safe zone
+        this.ctx.strokeStyle = 'rgba(0, 212, 255, 0.4)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.arc(stormX, stormY, stormRadius - 50 * scale, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Draw player
+        this.ctx.fillStyle = '#00d4ff';
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Draw other players
+        this.ctx.fillStyle = 'rgba(255, 107, 107, 0.7)';
+        gameState.players.forEach((player, id) => {
+            if (id !== gameState.playerId && player.isAlive) {
+                const px = centerX + (player.position.x - gameState.localPlayer.position.x) * scale;
+                const py = centerY + (player.position.z - gameState.localPlayer.position.z) * scale;
+                this.ctx.beginPath();
+                this.ctx.arc(px, py, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        });
+
+        // Draw direction indicator
+        this.ctx.fillStyle = '#00d4ff';
+        this.ctx.font = 'bold 14px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('N', centerX, centerY - 40);
+    }
+}
+
 // Game Engine
 class GameEngine {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.gameState = new GameState();
+        this.renderer = new CanvasRenderer(this.canvas);
         this.lastTime = Date.now();
         this.running = false;
+        this.lobbyCounter = 0;
         
         this.setupEventListeners();
     }
@@ -394,24 +492,38 @@ class GameEngine {
     startGame(mode) {
         this.showMenu('mainMenu', false);
         this.showMenu('lobbyScreen', true);
+        this.lobbyCounter = 0;
+        this.updateLobbyCount();
         
         // Simulate lobby
-        setTimeout(() => {
-            this.gameState.initializeGame(mode);
-            this.localCamera = new CameraController(this.gameState.localPlayer, this.canvas);
-            this.inputHandler = new InputHandler(this.gameState.localPlayer, this.gameState);
-            
-            this.showMenu('lobbyScreen', false);
-            this.showMenu('gameHUD', true);
-            
-            this.gameState.startMatch();
-            this.running = true;
-            this.gameLoop();
-        }, 2000);
+        const lobbyInterval = setInterval(() => {
+            this.lobbyCounter++;
+            this.updateLobbyCount();
+            if (this.lobbyCounter >= 3) {
+                clearInterval(lobbyInterval);
+                this.gameState.initializeGame(mode);
+                this.localCamera = new CameraController(this.gameState.localPlayer, this.canvas);
+                this.inputHandler = new InputHandler(this.gameState.localPlayer, this.gameState);
+                
+                this.showMenu('lobbyScreen', false);
+                this.showMenu('gameHUD', true);
+                
+                this.gameState.startMatch();
+                this.running = true;
+                this.gameLoop();
+            }
+        }, 667); // Update every ~667ms for 3 steps
+    }
+
+    updateLobbyCount() {
+        const mode = this.gameState.mode === 'solo' ? 'SOLO' : 'DUO';
+        document.getElementById('modeText').textContent = `Mode: ${mode}`;
+        document.getElementById('playerCount').textContent = `Players: ${Math.min(10 + this.lobbyCounter * 8, 30)}/30`;
     }
 
     returnToMenu() {
         this.running = false;
+        this.lobbyCounter = 0;
         this.gameState = new GameState();
         this.showMenu('mainMenu', true);
         this.showMenu('lobbyScreen', false);
@@ -437,13 +549,19 @@ class GameEngine {
         const deltaTime = (now - this.lastTime) / 1000;
         this.lastTime = now;
 
+        // Cap deltaTime to prevent huge jumps
+        const cappedDeltaTime = Math.min(deltaTime, 0.1);
+
         // Update game state
-        this.gameState.update(deltaTime);
+        this.gameState.update(cappedDeltaTime);
 
         // Update input
         if (this.inputHandler) {
-            this.inputHandler.update(deltaTime);
+            this.inputHandler.update(cappedDeltaTime);
         }
+
+        // Render
+        this.renderer.render(this.gameState);
 
         // Update HUD
         this.updateHUD();
@@ -511,6 +629,7 @@ class GameEngine {
 
         // Draw storm circle
         ctx.strokeStyle = 'rgba(255, 107, 107, 0.6)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(
             this.gameState.storm.centerX * scale,
